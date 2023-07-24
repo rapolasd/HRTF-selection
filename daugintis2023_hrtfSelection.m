@@ -1,6 +1,6 @@
-function [varargout] = daugintis2023_hrtfSelection(subjects, hrtf_dir, varargin)
-%DAUGINTIS2023_HRTFSELECTION select a good and a bad mathcing HRTF based on
-%barumerli2023 prediction
+function daugintis2023_hrtfSelection(subjects, hrtf_dir, varargin)
+%DAUGINTIS2023_HRTFSELECTION selects a good and a bad mathcing HRTF based
+%on barumerli2023 prediction
 %   
 %   Requires Auditory Modelling Toolbox (tested with v1.4.1-dev)
 %
@@ -150,14 +150,18 @@ function [varargout] = daugintis2023_hrtfSelection(subjects, hrtf_dir, varargin)
         m = zeros(num_t,8,n_s,num_hrtf);
     end
 
-    % 4D array to store aggregated directional errors
-    % number of directions x 6 (target az, el, lat, pol, rmsP, querr) x
-    % number of subjects x number of HRTFs
-    err_dir = zeros(num_dir, 6, n_s, num_hrtf);
+    model_dir = 'model_predictions';
+    if not(isfolder(model_dir))
+        mkdir(model_dir);
+    end
+    
     for s = 1:n_s % looping over subjects
+        % 3D array to store aggregated directional errors for each subject
+        % number of directions x 6 (target az, el, lat, pol, rmsP, querr) x
+        % number of HRTFs
+        err_dir = zeros(num_dir, 6, num_hrtf);
         amt_disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%');
         amt_disp(sprintf('SUBJECT: %s', subject_list{s}));
-
         template_par_s = template_par(s);
         parfor n = 1:num_hrtf % target HRTFs
             m_temp = barumerli2023('template', template_par_s, ...
@@ -175,42 +179,34 @@ function [varargout] = daugintis2023_hrtfSelection(subjects, hrtf_dir, varargin)
             % Aggregate and store errors for each direction
             for d = 1:num_dir
                 [rmsPlocal, querr] = rmsPandQuerr(m_temp(d:num_dir:num_t,:));
-                err_dir(d,:, s, n) = [m_temp(d,1), m_temp(d,2), m_temp(d,5), m_temp(d,6), rmsPlocal, querr];
+                err_dir(d,:,n) = [m_temp(d,1), m_temp(d,2), m_temp(d,5), m_temp(d,6), rmsPlocal, querr];
             end
             if save_loc_matrices
                 m(:,:,s,n)  = m_temp;
             end
         end
 
-        
-    end
-
-    err_dir = err_dir(~isnan(err_dir(:,5,1,1)),:,:,:);
-    nd = length(err_dir);
-    dir_err_t = array2table(reshape(reshape(permute(err_dir,[1 4 3 2]),[],2),[],size(err_dir,2)), ...
+%         err_dir = err_dir(~isnan(err_dir(:,5,:)),:,:,:);
+        dir_err_t = array2table(reshape(reshape(permute(err_dir,[1 3 2]),[],2),[],size(err_dir,2)), ...
         'VariableNames', {'azi_target', 'ele_target', 'lat_target', 'pol_target', 'rmsP', 'querr'});
-
-    subj_t = array2table([repelem(subjects', num_hrtf*nd, 1), repmat(repelem({hrtf_list.name}', nd, 1), num_subjects, 1)], ...
-        'VariableNames', {'template_HRTF', 'target_HRTF'});
-
-    dir_err_t = [subj_t dir_err_t];
-
-    varargout{1} =  dir_err_t;
-    varargout{2} =  err_dir;
+        subj_t = array2table([repelem(subject_list(s), num_dir*num_hrtf, 1), repelem({hrtf_list.name}', num_dir, 1)], ...
+            'VariableNames', {'template_HRTF', 'target_HRTF'});
+        dir_err_t = [subj_t dir_err_t];
+        writetable(dir_err_t, fullfile(model_dir, ['dir_err_table_' subject_list{s} '.csv']))        
+    end
     
     if ~flags.do_redo_fast
         if flags.do_save_matrices
             save('m.mat', 'm', '-v7.3');
             amt_disp('Localisation matrix saved.');
         end        
-        writetable(dir_err_t, 'dir_err_table.csv')
     end     
 
     if flags.do_run_python
         if pyenv().Version == ""
             warning("Python environment not set up in MATLAB. Please run daugintis2023_hrtfSelection.py manually.")
         else
-            pyrunfile("daugintis2023_hrtfSelection.py 'plot'")
+            pyrunfile("daugintis2023_hrtfSelection.py")
         end
     end
     

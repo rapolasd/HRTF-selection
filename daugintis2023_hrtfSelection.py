@@ -1,7 +1,9 @@
+from pathlib import Path
+import os
+import warnings
 import numpy as np
 import pandas as pd
 from scipy import stats
-import warnings
 import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.collections import PolyCollection
@@ -29,31 +31,38 @@ def select_HRTFs(plot_figures=False):
      will be plotted and saved in the folder
     :return: Dataframe with the best and the worst HRTF for each subject.
     """
-    dir_errors = pd.read_csv('dir_err_table.csv', sep=',', engine='c', header=0)
-    dir_errors = dir_errors[(np.abs(dir_errors.pol_target) <= 11.5) & (np.abs(dir_errors.lat_target) <= 30)]
-
-    template_hrtfs = dir_errors["template_HRTF"].unique()
-    target_hrtfs = dir_errors["target_HRTF"].unique()
+    dir_err_files = Path('model_predictions').glob('dir_err_table_*.csv')
+    
     selected_hrtf_list = pd.DataFrame(columns=['id', 'goodHRTF', 'badHRTF'])
-    good_err_all = pd.DataFrame(columns=['template_HRTF', 'target_HRTF'])
-    bad_err_all = pd.DataFrame(columns=['template_HRTF', 'target_HRTF'])
-    for idx, template in enumerate(template_hrtfs):
-        print(f'%%%% Template: {template} %%%%%')
+    if plot_figures:
+        good_err_all = pd.DataFrame(columns=['template_HRTF', 'target_HRTF'])
+        bad_err_all = pd.DataFrame(columns=['template_HRTF', 'target_HRTF'])
+        if not os.path.exists('selection_figures'):
+            os.mkdir('selection_figures')
+    
+    for dir_err_file in dir_err_files:
+        print(f'%%%%%%%%%%% Reading file: {dir_err_file} %%%%%%%%%%%')
+        dir_errors = pd.read_csv(dir_err_file, sep=',', engine='c', header=0)
+        dir_errors = dir_errors[(np.abs(dir_errors.pol_target) <= 11.5) & (np.abs(dir_errors.lat_target) <= 30)]
 
-        good_errors, bad_errors = classify_hrtf_distributions(template, target_hrtfs, dir_errors)
-        best_hrtf, worst_hrtf = select_best_worst_hrtf(good_errors, bad_errors)
+        template_hrtfs = dir_errors["template_HRTF"].unique()
+        target_hrtfs = dir_errors["target_HRTF"].unique()
+        for template in template_hrtfs:
+            print(f'%%%% Template: {template} %%%%%')
 
-        selected_hrtf_list.loc[idx] = [template, best_hrtf, worst_hrtf]
+            good_errors, bad_errors = classify_hrtf_distributions(template, target_hrtfs, dir_errors)
+            best_hrtf, worst_hrtf = select_best_worst_hrtf(good_errors, bad_errors)
 
-        good_err_all = pd.concat([good_err_all, good_errors])
-        bad_err_all = pd.concat([bad_err_all, bad_errors])
+            selected_hrtf_list.loc[len(selected_hrtf_list)] = [template, best_hrtf, worst_hrtf]
 
-        if plot_figures:
-            plot_hrtf_distributions(template, target_hrtfs,
-                                    good_errors, best_hrtf,
-                                    bad_errors, worst_hrtf,
-                                    dir_errors,
-                                    save_figure=True)
+            if plot_figures:
+                good_err_all = pd.concat([good_err_all, good_errors])
+                bad_err_all = pd.concat([bad_err_all, bad_errors])
+                plot_hrtf_distributions(template, target_hrtfs,
+                                        good_errors, best_hrtf,
+                                        bad_errors, worst_hrtf,
+                                        dir_errors,
+                                        save_figure=True)
 
 
     selected_hrtf_list.to_csv('selected_HRTFs.csv')
@@ -82,7 +91,7 @@ def select_HRTFs(plot_figures=False):
             pch.append(mpatches.Patch(color=cl, label=my_labels[n]))
         pch[0], pch[1] = pch[1], pch[0]
         fig.legend(handles=pch, ncol=4, loc='upper center', fontsize='small', columnspacing=1, bbox_to_anchor=(0.48, 0.97), frameon=False, handletextpad=.4)
-        plt.savefig('selection_matrix.pdf', format='pdf', bbox_inches='tight')
+        plt.savefig(Path('selection_figures')/Path('selection_matrix.pdf'), format='pdf', bbox_inches='tight')
 
     return selected_hrtf_list
 
@@ -158,18 +167,26 @@ def select_best_worst_hrtf(good_errors_df: pd.DataFrame, bad_errors_df: pd.DataF
             good_hrtf[:] = np.nan
 
     # Finding the 'worst' HRTF based on median QE
-    bad_hrtf = bad_errors_df.nlargest(1, 'querr_median', keep='all'
+    if bad_errors_df.empty:
+        warnings.warn("No HRTFs classified as bad, selecting the worst one from the good ones.")
+        bad_hrtf = good_errors_df.nlargest(1, 'querr_3rd_quartile', keep='all'
                                       ).target_HRTF.to_numpy()
-    # If multiple HRTFs have the same median QE then check 3rd quartile
-    if len(bad_hrtf) > 1:
-        bad_hrtf = bad_errors_df[
-            bad_errors_df.target_HRTF.isin(bad_hrtf)
-        ].nlargest(1, 'querr_3rd_quartile', keep='all').target_HRTF.to_numpy()
-        # Finally, check if PEs are different
+        if len(bad_hrtf) > 1:
+            bad_hrtf = good_errors_df[good_errors_df.target_HRTF.isin(bad_hrtf)
+            ].nlargest(1, 'rmsP', keep='all').target_HRTF.to_numpy()
+    else:
+        bad_hrtf = bad_errors_df.nlargest(1, 'querr_median', keep='all'
+                                      ).target_HRTF.to_numpy()
+        # If multiple HRTFs have the same median QE then check 3rd quartile
         if len(bad_hrtf) > 1:
             bad_hrtf = bad_errors_df[
                 bad_errors_df.target_HRTF.isin(bad_hrtf)
-            ].nlargest(1, 'rmsP', keep='all').target_HRTF.to_numpy()
+            ].nlargest(1, 'querr_3rd_quartile', keep='all').target_HRTF.to_numpy()
+            # Finally, check if PEs are different
+            if len(bad_hrtf) > 1:
+                bad_hrtf = bad_errors_df[
+                    bad_errors_df.target_HRTF.isin(bad_hrtf)
+                ].nlargest(1, 'rmsP', keep='all').target_HRTF.to_numpy()
     if good_hrtf.size > 1:
         warnings.warn("Multiple HRTFs were classified as best. Returning the first one only")
     if bad_hrtf.size > 1:
@@ -278,7 +295,7 @@ def plot_hrtf_distributions(template: str,
     ax.set_xticklabels([i.get_text()[0:5] for i in ax.xaxis.get_ticklabels()])
     ax.tick_params(axis='y', which='major', pad=0)
     if save_figure:
-        plt.savefig(template + '_distribution.pdf',
+        plt.savefig(Path('selection_figures')/Path(template + '_distribution.pdf'),
                     format='pdf', bbox_inches='tight')
         plt.close(fg)
 
