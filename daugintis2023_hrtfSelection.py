@@ -31,15 +31,25 @@ def select_HRTFs(plot_figures=False):
      will be plotted and saved in the folder
     :return: Dataframe with the best and the worst HRTF for each subject.
     """
-    dir_err_files = Path('model_predictions').glob('dir_err_table_*.csv')
+    
+    # Checking the folder with the model predictions from MATLAB
+    model_predictions_path = Path('model_predictions')
+    if model_predictions_path.is_dir():
+        dir_err_files = model_predictions_path.glob('dir_err_table_*.csv')
+    else:
+        raise RuntimeError("model_predictions folder not found. Please store model prediction results in model_predictions folder.")
     
     selected_hrtf_list = pd.DataFrame(columns=['id', 'goodHRTF', 'badHRTF'])
+    
+    # Arrays for storing data needed for the figures
     if plot_figures:
         good_err_all = pd.DataFrame(columns=['template_HRTF', 'target_HRTF'])
         bad_err_all = pd.DataFrame(columns=['template_HRTF', 'target_HRTF'])
+        template_hrtfs_all = np.empty(0, dtype=str)
         if not os.path.exists('selection_figures'):
             os.mkdir('selection_figures')
     
+    # Looping through each file in the model_predictions folder and reading the error data
     for dir_err_file in dir_err_files:
         print(f'%%%%%%%%%%% Reading file: {dir_err_file} %%%%%%%%%%%')
         dir_errors = pd.read_csv(dir_err_file, sep=',', engine='c', header=0)
@@ -47,15 +57,20 @@ def select_HRTFs(plot_figures=False):
 
         template_hrtfs = dir_errors["template_HRTF"].unique()
         target_hrtfs = dir_errors["target_HRTF"].unique()
+        
+        # In case the file contains predictions for multiple subjects, looping through subjects 
+        # (should normally be one template per file only)
         for template in template_hrtfs:
             print(f'%%%% Template: {template} %%%%%')
 
             good_errors, bad_errors = classify_hrtf_distributions(template, target_hrtfs, dir_errors)
             best_hrtf, worst_hrtf = select_best_worst_hrtf(good_errors, bad_errors)
-
+            # Appending the selection to the final list
             selected_hrtf_list.loc[len(selected_hrtf_list)] = [template, best_hrtf, worst_hrtf]
 
+            # Plotting the HRTF distributions for each template
             if plot_figures:
+                template_hrtfs_all = np.append(template_hrtfs_all, template)
                 good_err_all = pd.concat([good_err_all, good_errors])
                 bad_err_all = pd.concat([bad_err_all, bad_errors])
                 plot_hrtf_distributions(template, target_hrtfs,
@@ -67,12 +82,12 @@ def select_HRTFs(plot_figures=False):
 
     selected_hrtf_list.to_csv('selected_HRTFs.csv')
 
+    # Plotting the selection matrix with all subjects
     if plot_figures:
-        sel_m = selection_matrix(selected_hrtf_list, template_hrtfs, target_hrtfs, good_err_all, bad_err_all)
+        sel_m = selection_matrix(selected_hrtf_list, template_hrtfs_all, target_hrtfs, good_err_all, bad_err_all)
         # anonim_ticks = np.arange(5,sel_m.columns.size+1,5)
         # sns.set(font_scale=1)
         sns.set_theme(style="whitegrid")
-        # for s, t in zip([st_ind, st_avg], ['ind_selection', 'median_selection']):
         cm = 1/2.54
         plt.rcParams.update({'font.size': 10})
         fig = plt.figure(figsize=[7.8*cm, 7.8*cm])
@@ -196,6 +211,14 @@ def select_best_worst_hrtf(good_errors_df: pd.DataFrame, bad_errors_df: pd.DataF
 
 
 def rms_p(data):
+    """Calculates root-mean-square of data.
+
+    Args:
+        data (array_like): array of values
+
+    Returns:
+        ndarray: rms of data
+    """
     return np.sqrt(np.sum(np.square(data)) / len(data))
 
 
@@ -210,6 +233,18 @@ def plot_hrtf_distributions(template: str,
                             worst_hrtf: str,
                             dir_errors: pd.DataFrame,
                             save_figure: bool):
+    """Creates violin plots of target HRTF PE and QE distributions for the template
+
+    Args:
+        template (str): subject name
+        target_hrtfs (array_like): target names
+        good_errors_df (pd.DataFrame): target HRTF names, classified as good
+        best_hrtf (str): the best HRTF out of the good ones
+        bad_errors_df (pd.DataFrame): target HRTF names, classified as bad
+        worst_hrtf (str): the worst HRTF out of the bad ones
+        dir_errors (pd.DataFrame): dataframe with the PE and QE errors
+        save_figure (bool): flag to save the figure as a file
+    """
     my_pal = {target:
                   my_cmap[2] if target == template else
                   my_cmap[3] if target in

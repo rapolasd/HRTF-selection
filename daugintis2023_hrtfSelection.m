@@ -14,7 +14,9 @@ function daugintis2023_hrtfSelection(subjects, hrtf_dir, varargin)
 %   
 %   Input parameters:
 %       subjects : a cell array of file names within the folder, for which
-%                  the good and the bad HRTFs will be selected.
+%                  the good and the bad HRTFs will be selected. If empty
+%                  cell array is supplied ({}), then do the prediction for
+%                  all the HRTFs in the directory as subjects.
 %       hrtf_dir : relative or absolute path to the directory that contains
 %                  all HRTFs from which the selection must be made. NB:
 %                  subject HRTFs also have to be in this folder.
@@ -87,8 +89,12 @@ function daugintis2023_hrtfSelection(subjects, hrtf_dir, varargin)
     % Extracting the HRTF filenames from the directory
     hrtf_list = dir(fullfile(hrtf_dir,'*.sofa'));    
     num_hrtf = length(hrtf_list);
+    % If no subject name is supplied, then do the prediction for all
+    % subjects in the directory
+    if isempty(subjects)
+        subjects = {hrtf_list.name};
+    end
 
-    
     % Defining limited set of directions at +-30 azimuth +-11.5 elevation
     % (Should be +-30 lateral +-11.5 polar angles but the result is the same)
     dirs = amt_load('barumerli2023','dirs.mat');
