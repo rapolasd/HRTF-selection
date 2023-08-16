@@ -1,7 +1,7 @@
 # HRTF selection
-Scripts to select good and bad non-individual Head-Related Transfer Functions (HRTFs) based on the [barumerli2023](http://amtoolbox.org/amt-1.5.0/doc/models/barumerli2023.php) auditory model [[1]](#barumerli2023). The procedure is detailed in [[2]](#daugintis2023).
+Scripts to select good and bad non-individual Head-Related Transfer Functions (HRTFs) based on the [barumerli2023](http://amtoolbox.org/amt-1.5.0/doc/models/barumerli2023.php) auditory model [[1](#barumerli2023)]. The procedure is detailed in [[2](#daugintis2023)].
 
- - Requires Auditory Modelling Toolbox (AMT): http://amtoolbox.org
+ - Requires Auditory Modelling Toolbox (AMT): http://amtoolbox.org.
  - Python script requires the following libraries:
     - numpy
     - pandas
@@ -9,6 +9,8 @@ Scripts to select good and bad non-individual Head-Related Transfer Functions (H
     - matplotlib
     - scipy
     - pathlib
+
+ - [test_hrtfs](https://github.com/rapolasd/HRTF-selection/tree/main/test_hrtfs) folder contains a few HRTFs from the [SONICOM](https://www.axdesign.co.uk/tools-and-devices/sonicom-hrtf-dataset) database [[3](#engel2023)] that can be used to test the selection method.
 
 ## Example use:
 
@@ -29,6 +31,8 @@ Optionally, MATLAB function can take arrays of corresponding target azimuths and
 
 ## References
 
-<a id="barumerli2023">[1]</a> R. Barumerli, P. Majdak, M. Geronazzo, D. Meijer, F. Avanzini, and R. Baumgartner. A Bayesian model for human directional localization of broadband static sound sources. *Acta Acustica*, vol. 7, p. 12, 2023, doi: [10.1051/aacus/2023006](https://doi.org/10.1051/aacus/2023006).
+<a id="barumerli2023">[1]</a> R. Barumerli, P. Majdak, M. Geronazzo, D. Meijer, F. Avanzini, and R. Baumgartner, "A Bayesian model for human directional localization of broadband static sound sources," *Acta Acust.*, vol. 7, p. 12, 2023, doi: [10.1051/aacus/2023006](https://doi.org/10.1051/aacus/2023006).
 
-<a id="daugintis2023">[2]</a> R. Daugintis, R. Barumerli, L. Picinali and M. Geronazzo, "Classifying Non-Individual Head-Related Transfer Functions with A Computational Auditory Model: Calibration And Metrics," *ICASSP 2023 - 2023 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)*, Rhodes Island, Greece, 2023, doi: [10.1109/ICASSP49357.2023.10095152](https://doi.org/10.1109/ICASSP49357.2023.10095152).
+<a id="daugintis2023">[2]</a> R. Daugintis, R. Barumerli, L. Picinali, and M. Geronazzo, “Classifying Non-Individual Head- Related Transfer Functions with A Computational Au- ditory Model: Calibration And Metrics,” in *Proc. IEEE Int. Conf. Acoust. Speech Signal Process. (ICASSP)*, 2023, doi: [10.1109/ICASSP49357.2023.10095152](https://doi.org/10.1109/ICASSP49357.2023.10095152).
+
+<a id="engel2023">[3]</a> I. Engel, R. Daugintis, T. Vicente, A. O. T. Hogg, J. Pauwels, A. J. Tournier, and L. Picinali, “The SONICOM HRTF dataset,” *J. Audio Eng. Soc. (AES)*, vol. 71, no. 5, pp. 241–253, 2023.
