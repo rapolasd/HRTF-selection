@@ -1,9 +1,9 @@
 # HRTF selection
-Scripts to select good and bad non-individual HRTFs based on a [barumerli2023](http://amtoolbox.org/amt-1.5.0/doc/models/barumerli2023.php) auditory model [[1]](#barumerli2023). The procedure is detailed in [[2]](#daugintis2023) 
+Scripts to select good and bad non-individual Head-Related Transfer Functions (HRTFs) based on the [barumerli2023](http://amtoolbox.org/amt-1.5.0/doc/models/barumerli2023.php) auditory model [[1]](#barumerli2023). The procedure is detailed in [[2]](#daugintis2023).
 
  - Requires Auditory Modelling Toolbox (AMT): http://amtoolbox.org
  - Python script requires the following libraries:
-    - numpy
+    - NumPy
     - pandas
     - seaborn
     - matplotlib
