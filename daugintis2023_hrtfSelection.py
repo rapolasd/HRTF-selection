@@ -1,3 +1,7 @@
+"""
+Module selecting the best and the worst HRTF for each subject
+based on the daugintis2023_hrtfSelection.m predictions.
+"""
 from pathlib import Path
 import os
 import warnings
@@ -31,16 +35,18 @@ def select_HRTFs(plot_figures=False):
      will be plotted and saved in the folder
     :return: Dataframe with the best and the worst HRTF for each subject.
     """
-    
+
     # Checking the folder with the model predictions from MATLAB
     model_predictions_path = Path('model_predictions')
     if model_predictions_path.is_dir():
         dir_err_files = model_predictions_path.glob('dir_err_table_*.csv')
     else:
-        raise RuntimeError("model_predictions folder not found. Please store model prediction results in model_predictions folder.")
-    
+        raise RuntimeError('model_predictions folder not found.'\
+                            'Please store model prediction results'\
+                                'in model_predictions folder.')
+
     selected_hrtf_list = pd.DataFrame(columns=['id', 'goodHRTF', 'badHRTF'])
-    
+
     # Arrays for storing data needed for the figures
     if plot_figures:
         good_err_all = pd.DataFrame(columns=['template_HRTF', 'target_HRTF'])
@@ -48,22 +54,26 @@ def select_HRTFs(plot_figures=False):
         template_hrtfs_all = np.empty(0, dtype=str)
         if not os.path.exists('selection_figures'):
             os.mkdir('selection_figures')
-    
+
     # Looping through each file in the model_predictions folder and reading the error data
     for dir_err_file in dir_err_files:
         print(f'%%%%%%%%%%% Reading file: {dir_err_file} %%%%%%%%%%%')
         dir_errors = pd.read_csv(dir_err_file, sep=',', engine='c', header=0)
-        dir_errors = dir_errors[(np.abs(dir_errors.pol_target) <= 11.5) & (np.abs(dir_errors.lat_target) <= 30)]
+        dir_errors = dir_errors[(np.abs(dir_errors.pol_target) <= 11.5) &
+                                (np.abs(dir_errors.lat_target) <= 30)]
 
         template_hrtfs = dir_errors["template_HRTF"].unique()
         target_hrtfs = dir_errors["target_HRTF"].unique()
-        
-        # In case the file contains predictions for multiple subjects, looping through subjects 
+
+        # In case the file contains predictions for multiple subjects,
+        # looping through subjects
         # (should normally be one template per file only)
         for template in template_hrtfs:
             print(f'%%%% Template: {template} %%%%%')
 
-            good_errors, bad_errors = classify_hrtf_distributions(template, target_hrtfs, dir_errors)
+            good_errors, bad_errors = classify_hrtf_distributions(template,
+                                                                  target_hrtfs,
+                                                                  dir_errors)
             best_hrtf, worst_hrtf = select_best_worst_hrtf(good_errors, bad_errors)
             # Appending the selection to the final list
             selected_hrtf_list.loc[len(selected_hrtf_list)] = [template, best_hrtf, worst_hrtf]
@@ -84,14 +94,17 @@ def select_HRTFs(plot_figures=False):
 
     # Plotting the selection matrix with all subjects
     if plot_figures:
-        sel_m = selection_matrix(selected_hrtf_list, template_hrtfs_all, target_hrtfs, good_err_all, bad_err_all)
+        sel_m = selection_matrix(selected_hrtf_list, template_hrtfs_all,
+                                 target_hrtfs, good_err_all, bad_err_all)
         # anonim_ticks = np.arange(5,sel_m.columns.size+1,5)
         # sns.set(font_scale=1)
         sns.set_theme(style="whitegrid")
         cm = 1/2.54
         plt.rcParams.update({'font.size': 10})
         fig = plt.figure(figsize=[7.8*cm, 7.8*cm])
-        ax = sns.heatmap(data=sel_m, linewidths=.5, cbar=False, mask=(sel_m == 0), cmap=my_cmap, vmin=-2, vmax=2)
+        ax = sns.heatmap(data=sel_m, linewidths=.5,
+                         cbar=False, mask=(sel_m == 0),
+                         cmap=my_cmap, vmin=-2, vmax=2)
         ax.invert_yaxis()
         # ax.set_xticks(anonim_ticks-.5,anonim_ticks)
         # ax.set_yticks(anonim_ticks-.5,anonim_ticks)
@@ -105,23 +118,32 @@ def select_HRTFs(plot_figures=False):
                 continue
             pch.append(mpatches.Patch(color=cl, label=my_labels[n]))
         pch[0], pch[1] = pch[1], pch[0]
-        fig.legend(handles=pch, ncol=4, loc='upper center', fontsize='small', columnspacing=1, bbox_to_anchor=(0.48, 0.97), frameon=False, handletextpad=.4)
-        plt.savefig(Path('selection_figures')/Path('selection_matrix.pdf'), format='pdf', bbox_inches='tight')
+        fig.legend(handles=pch, ncol=4, loc='upper center', fontsize='small',
+                   columnspacing=1, bbox_to_anchor=(0.48, 0.97), frameon=False,
+                   handletextpad=.4)
+        plt.savefig(Path('selection_figures')/Path('selection_matrix.pdf'),
+                    format='pdf', bbox_inches='tight')
 
     return selected_hrtf_list
 
 
 
-def classify_hrtf_distributions(subject: str, target_hrtfs: np.ndarray, errors_lim_dirs: pd.DataFrame):
+def classify_hrtf_distributions(subject: str,
+                                target_hrtfs: np.ndarray,
+                                errors_lim_dirs: pd.DataFrame):
     """
     Classifies target HRTFs for a subject into good and bad based on Shapiro-Wilk normality test.
     :param subject: subject id
     :param target_hrtfs: array of target HRTF ids
-    :param errors_lim_dirs: Dataframe with directional errors, limited to the desired directions
-    :return: tuple of dataframes with errors of good target HRTFs and bad target HRTFs for the subject
+    :param errors_lim_dirs: Dataframe with directional errors,
+                            limited to the desired directions
+    :return: tuple of dataframes with errors of good and bad target HRTFs for the subject
     """
-    good_errors = pd.DataFrame(columns=['template_HRTF', 'target_HRTF', 'rmsP', 'querr_3rd_quartile'])
-    bad_errors = pd.DataFrame(columns=['template_HRTF', 'target_HRTF', 'querr_median', 'querr_3rd_quartile', 'rmsP'])
+    good_errors = pd.DataFrame(columns=['template_HRTF', 'target_HRTF',
+                                        'rmsP', 'querr_3rd_quartile'])
+    bad_errors = pd.DataFrame(columns=['template_HRTF', 'target_HRTF',
+                                       'querr_median', 'querr_3rd_quartile',
+                                       'rmsP'])
     n_good, n_bad = 0, 0  # Counters for good/bad HRTF tables
     for target in target_hrtfs:
         if target != subject:
@@ -279,13 +301,14 @@ def plot_hrtf_distributions(template: str,
         violin.set_facecolor(my_pal[t])
 
     ax.legend(handles=handles,
-              labels=['Limited distributions:', 'Bad', 'Worst', 'Good',
-                      'Best', 'Individual'], loc='upper center', bbox_to_anchor=(0.5, 1.15), fontsize=13,
+              labels=['Limited distributions:', 'Bad', 'Worst', 'Good', 'Best', 'Individual'],
+              loc='upper center', bbox_to_anchor=(0.5, 1.15), fontsize=13,
               ncol=7, frameon=False, columnspacing=1.4, handlelength=1.4, handletextpad=0.5)
 
     qe_order = pd.concat([bad_errors_df.iloc[0:1, 0],  # ind HRTF at the start
                           good_errors_df.sort_values('querr_3rd_quartile').target_HRTF,
-                          bad_errors_df.sort_values(['querr_median', 'querr_3rd_quartile']).target_HRTF])
+                          bad_errors_df.sort_values(['querr_median',
+                                                     'querr_3rd_quartile']).target_HRTF])
     ax = sns.violinplot(ax=axes[1, 0], data=dir_err_tmp, x="target_HRTF", y="querr", cut=0,
                         scale="width", inner="quartile", order=qe_order, legend=False)
     ax.set_ylabel("QE (%)")
@@ -309,8 +332,10 @@ def plot_hrtf_distributions(template: str,
     dir_err_gb = dir_errors[(dir_errors['template_HRTF'] == template) &
                             ((dir_errors['target_HRTF'] == best_hrtf) |
                              (dir_errors['target_HRTF'] == worst_hrtf))]
-    ax = sns.violinplot(ax=axes[0, 1], data=dir_err_gb, x="target_HRTF", y="rmsP", scale="count", inner="quartile",
-                        split=False, order=[best_hrtf, worst_hrtf], palette=[my_cmap[-2], my_cmap[1]])
+    ax = sns.violinplot(ax=axes[0, 1], data=dir_err_gb, x="target_HRTF", y="rmsP",
+                        scale="count", inner="quartile",
+                        split=False, order=[best_hrtf, worst_hrtf],
+                        palette=[my_cmap[-2], my_cmap[1]])
     ax.set_ylabel(None)
     ax.set_xlabel(None)
     ax.set_xticklabels([i.get_text()[0:5] for i in ax.xaxis.get_ticklabels()])
@@ -319,8 +344,10 @@ def plot_hrtf_distributions(template: str,
     for ind, violin in enumerate(ax.findobj(PolyCollection)):
         violin.set_edgecolor(my_cmap[4 - 4 * ind])
         violin.set_hatch('\\\\\\' if ind == 0 else '///')
-    ax = sns.violinplot(ax=axes[1, 1], data=dir_err_gb, x="target_HRTF", y="querr", scale="count", inner="quartile",
-                        split=False, order=[best_hrtf, worst_hrtf], cut=0, palette=[my_cmap[-2], my_cmap[1]])
+    ax = sns.violinplot(ax=axes[1, 1], data=dir_err_gb, x="target_HRTF", y="querr",
+                        scale="count", inner="quartile",
+                        split=False, order=[best_hrtf, worst_hrtf],
+                        cut=0, palette=[my_cmap[-2], my_cmap[1]])
     for ind, violin in enumerate(ax.findobj(PolyCollection)):
         violin.set_edgecolor(my_cmap[4 - 4 * ind])
         violin.set_hatch('\\\\\\' if ind == 0 else '///')
@@ -335,6 +362,7 @@ def plot_hrtf_distributions(template: str,
         plt.close(fg)
 
 def selection_matrix(selected_hrtf_list, template_hrtfs, target_hrtfs, good_err_all, bad_err_all):
+    """Creates selection matrix for with all the subjects that can be plotted as a heatmap"""
     zd = np.zeros(shape=(len(target_hrtfs), len(template_hrtfs)))
     sel_m = pd.DataFrame(data=zd, index=target_hrtfs, columns=template_hrtfs)
     for t in template_hrtfs:

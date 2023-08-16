@@ -31,6 +31,12 @@ function daugintis2023_hrtfSelection(subjects, hrtf_dir, varargin)
 %                         MATLAB. Alternatively, the python script should
 %                         be run after the MATLAB script is finished.
 %
+%   Optional key/value pairs:
+%       'target_el'     : array of target elevations to be used for the
+%                         model instead of the default ones (+-11.5 deg)
+%       'target_az'     : array of target elevations to be used for the
+%                         model instead of the default ones (+-30 deg)
+%
 %   Output:
 %       dir_err_t : matlab table, which contains the aggregated errors for
 %                   each direction within +-11.5 deg elevation and +-30 deg
@@ -58,6 +64,9 @@ function daugintis2023_hrtfSelection(subjects, hrtf_dir, varargin)
     definput.flags.redo = {'redo','redo_fast'};
     definput.flags.save = {'no_save_matices','save_matrices'};
     definput.flags.python = {'no_run_python','run_python'};
+
+    definput.keyvals.target_az = [];
+    definput.keyvals.target_el = [];
     
     [flags,kv]  = ltfatarghelper({},definput,varargin);
     
@@ -95,14 +104,24 @@ function daugintis2023_hrtfSelection(subjects, hrtf_dir, varargin)
         subjects = {hrtf_list.name};
     end
 
-    % Defining limited set of directions at +-30 azimuth +-11.5 elevation
-    % (Should be +-30 lateral +-11.5 polar angles but the result is the same)
-    dirs = amt_load('barumerli2023','dirs.mat');
-    dirs = dirs.cache.value;
-    dirs_sph = zeros(size(dirs));
-    [dirs_sph(:,1),dirs_sph(:,2),dirs_sph(:,3)] = cart2sph(dirs(:,1), dirs(:,2), dirs(:,3));
-    dirs_sph(:,1:2) = rad2deg(dirs_sph(:,1:2));
-    dirs_sph_lim = dirs_sph(abs(dirs_sph(:,1)) <= 30 & abs(dirs_sph(:,2)) <= 11.5,:);
+    if isempty(kv.target_az) || isempty(kv.target_el)
+        % Defining limited set of directions at +-30 azimuth +-11.5 elevation
+        % (Should be +-30 lateral +-11.5 polar angles but the result is the same)
+        dirs = amt_load('barumerli2023','dirs.mat');
+        dirs = dirs.cache.value;
+        dirs_sph = zeros(size(dirs));
+        [dirs_sph(:,1),dirs_sph(:,2),dirs_sph(:,3)] = cart2sph(dirs(:,1), dirs(:,2), dirs(:,3));
+        dirs_sph(:,1:2) = rad2deg(dirs_sph(:,1:2));
+        dirs_sph_lim = dirs_sph(abs(dirs_sph(:,1)) <= 30 & abs(dirs_sph(:,2)) <= 11.5,:);
+
+        targ_az = dirs_sph_lim(:,1);
+        targ_el = dirs_sph_lim(:,2);
+    else
+        % If target az and el is specified, then using those instead
+        targ_az = kv.target_az;
+        targ_el = kv.target_el;
+        assert(isequal(size(targ_az),size(targ_el)), 'targ_az and targ_el should be arrays of equal size')
+    end
     
 
     clear template_par target_par err_tab err_dir
@@ -122,16 +141,16 @@ function daugintis2023_hrtfSelection(subjects, hrtf_dir, varargin)
             n_s = n_s+1;
             [template_par(n_s), target_par(s)] = barumerli2023_featureextraction(sofa, ...
                                                     'dtf', ...
-                                                    'targ_az', dirs_sph_lim(:,1), ...
-                                                    'targ_el', dirs_sph_lim(:,2), ...
+                                                    'targ_az', targ_az, ...
+                                                    'targ_el', targ_el, ...
                                                     'fs', sofa.Data.SamplingRate);
                                                     
             subject_list{n_s} = hrtf_list(s).name;
         else
             amt_disp(sprintf('HRTF (Target): %s', hrtf_list(s).name)) 
             [~, target_par(s)] = barumerli2023_featureextraction(sofa, 'dtf', ...
-                                            'targ_az', dirs_sph_lim(:,1), ...
-                                            'targ_el', dirs_sph_lim(:,2), ...
+                                            'targ_az', targ_az, ...
+                                            'targ_el', targ_el, ...
                                             'fs', sofa.Data.SamplingRate);
                                              
 %             target_par(s) = barumerli2023_featureextraction(sofa, 'dtf', ...
