@@ -3,7 +3,7 @@ Scripts to select good and bad non-individual Head-Related Transfer Functions (H
 
  - Requires Auditory Modelling Toolbox (AMT): http://amtoolbox.org
  - Python script requires the following libraries:
-    - NumPy
+    - numpy
     - pandas
     - seaborn
     - matplotlib
