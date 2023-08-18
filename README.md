@@ -27,7 +27,7 @@ The MATLAB function creates a new folder, named ```model_predictions```, where i
 
 ### Optional usage
 
-Optionally, MATLAB function can take arrays of corresponding target azimuths and elevations to be used in the ```barumerli2023``` model, e.g.: ```daugintis2023_hrtfSelection({},'./test_hrtfs', 'target_az', [-5, 0, 5], 'target_el', [10, 10, 10]);```. This overwrites the default selection of directions within ±30° azimuth and ±11.5° elevation. **NB**: the Python script is not adapted to select HRTFs based on directions other than the default ones and might show inconsistent behaviour.
+Optionally, MATLAB function can take column arrays of corresponding target azimuths and elevations to be used in the ```barumerli2023``` model, e.g.: ```daugintis2023_hrtfSelection({},'./test_hrtfs', 'target_az', [-5; 0; 5], 'target_el', [10; 10; 10]);```. This overwrites the default selection of directions within ±30° azimuth and ±11.5° elevation. **NB**: the Python script is not adapted to select HRTFs based on directions other than the default ones and might show inconsistent behaviour.
 
 ## References
 
