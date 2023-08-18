@@ -32,10 +32,10 @@ function daugintis2023_hrtfSelection(subjects, hrtf_dir, varargin)
 %                         be run after the MATLAB script is finished.
 %
 %   Optional key/value pairs:
-%       'target_el'     : array of target elevations to be used for the
-%                         model instead of the default ones (+-11.5 deg)
-%       'target_az'     : array of target elevations to be used for the
-%                         model instead of the default ones (+-30 deg)
+%       'target_el'     : column array of target elevations to be used for
+%                         the model instead of the default ones (+-11.5 deg)
+%       'target_az'     : column array of target elevations to be used for
+%                         the model instead of the default ones (+-30 deg)
 %
 %   Output:
 %       dir_err_t : matlab table, which contains the aggregated errors for
