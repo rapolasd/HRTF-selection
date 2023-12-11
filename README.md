@@ -8,7 +8,6 @@ Scripts to select good and bad non-individual Head-Related Transfer Functions (H
     - seaborn
     - matplotlib
     - scipy
-    - pathlib
 
  - [test_hrtfs](https://github.com/rapolasd/HRTF-selection/tree/main/test_hrtfs) folder contains a few HRTFs from the [SONICOM](https://www.axdesign.co.uk/tools-and-devices/sonicom-hrtf-dataset) database [[3](#engel2023)] that can be used to test the selection method.
 
