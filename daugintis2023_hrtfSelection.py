@@ -12,6 +12,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.collections import PolyCollection
 import matplotlib.patches as mpatches
+import matplotlib.ticker as mticker
 
 my_cmap = ['firebrick', 'mistyrose', 'white', 'lightgreen', 'darkgreen']
 handles = [plt.Rectangle((0, 0), 0, 0, facecolor='white',
@@ -283,11 +284,13 @@ def plot_hrtf_distributions(template: str,
 
     dir_err_tmp = dir_errors[(dir_errors['template_HRTF'] == template)]
 
-    ax = sns.violinplot(ax=axes[0, 0], data=dir_err_tmp, x="target_HRTF", y="rmsP", scale="width",
+    ax = sns.violinplot(ax=axes[0, 0], data=dir_err_tmp, x="target_HRTF", y="rmsP", density_norm="width",
                         inner="quartile", split=False, order=pe_order)
     ax.set_ylabel("PE (deg)")
     ax.set_xlabel(None)
-    ax.set_xticklabels([i.get_text()[0:5] for i in ax.xaxis.get_ticklabels()])
+    xticks_loc = ax.get_xticks()
+    ax.xaxis.set_major_locator(mticker.FixedLocator(xticks_loc))
+    ax.set_xticklabels([i.get_text()[0:5] for i in ax.xaxis.get_ticklabels()], rotation=90, fontsize=6)
     ax.set_ylim(bottom=0)
 
     for ind, violin in enumerate(ax.findobj(PolyCollection)):
@@ -310,10 +313,12 @@ def plot_hrtf_distributions(template: str,
                           bad_errors_df.sort_values(['querr_median',
                                                      'querr_3rd_quartile']).target_HRTF])
     ax = sns.violinplot(ax=axes[1, 0], data=dir_err_tmp, x="target_HRTF", y="querr", cut=0,
-                        scale="width", inner="quartile", order=qe_order, legend=False)
+                        density_norm="width", inner="quartile", order=qe_order, legend=False)
     ax.set_ylabel("QE (%)")
     ax.set_xlabel("Target HRTF")
-    ax.set_xticklabels([i.get_text()[0:5] for i in ax.xaxis.get_ticklabels()])
+    xticks_loc = ax.get_xticks()
+    ax.xaxis.set_major_locator(mticker.FixedLocator(xticks_loc))
+    ax.set_xticklabels([i.get_text()[0:5] for i in ax.xaxis.get_ticklabels()], rotation=90, fontsize=6)
     ax.set_ylim(bottom=0)
 
     for ind, violin in enumerate(ax.findobj(PolyCollection)):
@@ -333,11 +338,14 @@ def plot_hrtf_distributions(template: str,
                             ((dir_errors['target_HRTF'] == best_hrtf) |
                              (dir_errors['target_HRTF'] == worst_hrtf))]
     ax = sns.violinplot(ax=axes[0, 1], data=dir_err_gb, x="target_HRTF", y="rmsP",
-                        scale="count", inner="quartile",
+                        density_norm="count", inner="quartile",
                         split=False, order=[best_hrtf, worst_hrtf],
-                        palette=[my_cmap[-2], my_cmap[1]])
+                        palette=[my_cmap[-2], my_cmap[1]],
+                        hue="target_HRTF")
     ax.set_ylabel(None)
     ax.set_xlabel(None)
+    xticks_loc = ax.get_xticks()
+    ax.xaxis.set_major_locator(mticker.FixedLocator(xticks_loc))
     ax.set_xticklabels([i.get_text()[0:5] for i in ax.xaxis.get_ticklabels()])
     ax.tick_params(axis='y', which='major', pad=0)
 
@@ -345,15 +353,18 @@ def plot_hrtf_distributions(template: str,
         violin.set_edgecolor(my_cmap[4 - 4 * ind])
         violin.set_hatch('\\\\\\' if ind == 0 else '///')
     ax = sns.violinplot(ax=axes[1, 1], data=dir_err_gb, x="target_HRTF", y="querr",
-                        scale="count", inner="quartile",
+                        density_norm="count", inner="quartile",
                         split=False, order=[best_hrtf, worst_hrtf],
-                        cut=0, palette=[my_cmap[-2], my_cmap[1]])
+                        cut=0, palette=[my_cmap[-2], my_cmap[1]],
+                        hue="target_HRTF")
     for ind, violin in enumerate(ax.findobj(PolyCollection)):
         violin.set_edgecolor(my_cmap[4 - 4 * ind])
         violin.set_hatch('\\\\\\' if ind == 0 else '///')
     ax.set_ylim(bottom=0)
     ax.set_ylabel(None)
     ax.set_xlabel(None)
+    xticks_loc = ax.get_xticks()
+    ax.xaxis.set_major_locator(mticker.FixedLocator(xticks_loc))
     ax.set_xticklabels([i.get_text()[0:5] for i in ax.xaxis.get_ticklabels()])
     ax.tick_params(axis='y', which='major', pad=0)
     if save_figure:

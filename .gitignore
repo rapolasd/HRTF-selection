@@ -1,6 +1,6 @@
 # User-specific
-model_predictions/
-selection_figures/
+model_predictions*/
+selection_figures*/
 selected_HRTFs.csv
 
 # General
