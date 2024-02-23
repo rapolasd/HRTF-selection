@@ -1,7 +1,7 @@
 # User-specific
 model_predictions*/
 selection_figures*/
-selected_HRTFs.csv
+selected_HRTFs*.csv
 
 # General
 .DS_Store
