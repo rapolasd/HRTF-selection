@@ -134,6 +134,11 @@ function daugintis2023_hrtfSelection(subjects, hrtf_dir, varargin)
     for s = 1:num_hrtf % HRTFs
         sofa_fn = fullfile(hrtf_list(s).folder, hrtf_list(s).name);
         sofa = SOFAload(sofa_fn);
+        % Preprocess LISTEN HRTFs to follow sofa convention
+        if isfield(sofa, 'RoomVolume_Units')
+            sofa = rmfield(sofa, 'RoomVolume_Units');
+            sofa.Data.Delay = [0 0];
+        end
         % Convert to DTF
         sofa = SOFAhrtf2dtf(sofa);
         if any(strcmp(subjects, hrtf_list(s).name))
