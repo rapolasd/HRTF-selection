@@ -33,9 +33,15 @@ function daugintis2023_hrtfSelection(subjects, hrtf_dir, varargin)
 %
 %   Optional key/value pairs:
 %       'target_el'     : column array of target elevations to be used for
-%                         the model instead of the default ones (+-11.5 deg)
+%                         the model instead of the default ones (+-11.5
+%                         deg). Default input is "front". Passing empty 
+%                         array ([]) will compute all directions as per 
+%                         barumerli2023_featureextraction.
 %       'target_az'     : column array of target elevations to be used for
-%                         the model instead of the default ones (+-30 deg)
+%                         the model instead of the default ones (+-30 deg).
+%                         Default input is "front". Passing empty 
+%                         array ([]) will compute all directions as per 
+%                         barumerli2023_featureextraction.
 %
 %   Output:
 %       dir_err_t : matlab table, which contains the aggregated errors for
@@ -65,8 +71,8 @@ function daugintis2023_hrtfSelection(subjects, hrtf_dir, varargin)
     definput.flags.save = {'no_save_matices','save_matrices'};
     definput.flags.python = {'no_run_python','run_python'};
 
-    definput.keyvals.target_az = [];
-    definput.keyvals.target_el = [];
+    definput.keyvals.target_az = "front";
+    definput.keyvals.target_el = "front";
     
     [flags,kv]  = ltfatarghelper({},definput,varargin);
     
@@ -104,7 +110,8 @@ function daugintis2023_hrtfSelection(subjects, hrtf_dir, varargin)
         subjects = {hrtf_list.name};
     end
 
-    if isempty(kv.target_az) || isempty(kv.target_el)
+    if (isstring(kv.target_az) && kv.target_az == "front") || ...
+        (isstring(kv.target_el) && kv.target_el == "front")
         % Defining limited set of directions at +-30 azimuth +-11.5 elevation
         % (Should be +-30 lateral +-11.5 polar angles but the result is the same)
         dirs = amt_load('barumerli2023','dirs.mat');
